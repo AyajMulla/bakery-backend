@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -29,12 +28,12 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("❌ MongoDB error:", err);
     process.exit(1);
   });
 
 /* =========================
-   START SERVER (IMPORTANT)
+   START SERVER
 ========================= */
 const PORT = process.env.PORT || 5000;
 

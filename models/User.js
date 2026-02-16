@@ -6,12 +6,16 @@ const userSchema = new mongoose.Schema({
   mobile: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, default: "owner" }
-});
+}, { timestamps: true });
 
-// hash password before save
+/* =========================
+   HASH PASSWORD BEFORE SAVE
+========================= */
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
-  this.password = await bcrypt.hash(this.password, 10);
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
 module.exports = mongoose.model("User", userSchema);
