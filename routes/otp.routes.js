@@ -1,79 +1,96 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
+const nodemailer = require("nodemailer");
 const User = require("../models/User");
 
-// Temporary in-memory OTP store
-const otpStore = {};
+/* ============================
+   EMAIL TRANSPORT (GMAIL)
+============================ */
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
-/* =========================
+/* ============================
    SEND OTP
-========================= */
+   POST /api/otp/send
+============================ */
 router.post("/send", async (req, res) => {
   try {
-    const { mobile } = req.body;
+    const { email } = req.body;
 
-    if (!mobile) {
-      return res.status(400).json({ message: "Mobile is required" });
+    if (!email) {
+      return res.status(400).json({ message: "Email required" });
     }
 
-    const user = await User.findOne({ mobile });
-
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "Mobile not registered" });
+      return res.status(400).json({ message: "Email not registered" });
     }
 
+    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
 
-    otpStore[mobile] = {
-      otp,
-      expires: Date.now() + 2 * 60 * 1000 // 2 minutes
-    };
+    user.resetOtp = hashedOtp;
+    user.resetOtpExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+    await user.save();
 
-    console.log("OTP for", mobile, "is:", otp);
+    // Send email
+    await transporter.sendMail({
+      from: `"Taj Bakery" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Password Reset OTP",
+      html: `
+        <h2>Password Reset OTP</h2>
+        <p>Your OTP is:</p>
+        <h1>${otp}</h1>
+        <p>This OTP is valid for 5 minutes.</p>
+      `
+    });
 
     res.json({ message: "OTP sent successfully" });
 
   } catch (err) {
     console.error("OTP SEND ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "OTP send failed" });
   }
 });
 
-
-/* =========================
-   VERIFY OTP + RESET PASSWORD
-========================= */
+/* ============================
+   VERIFY OTP & RESET PASSWORD
+   POST /api/otp/verify
+============================ */
 router.post("/verify", async (req, res) => {
   try {
-    const { mobile, otp, newPassword } = req.body;
+    const { email, otp, newPassword } = req.body;
 
-    if (!mobile || !otp || !newPassword) {
-      return res.status(400).json({ message: "All fields required" });
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "Invalid request" });
     }
 
-    const record = otpStore[mobile];
-
-    if (!record) {
-      return res.status(400).json({ message: "OTP not found" });
-    }
-
-    if (record.expires < Date.now()) {
-      delete otpStore[mobile];
-      return res.status(400).json({ message: "OTP expired" });
-    }
-
-    if (record.otp !== otp) {
+    const user = await User.findOne({ email });
+    if (!user || !user.resetOtp) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    if (user.resetOtpExpiry < Date.now()) {
+      return res.status(400).json({ message: "OTP expired" });
+    }
 
-    await User.updateOne(
-      { mobile },
-      { $set: { password: hashedPassword } }
-    );
+    const isValid = await bcrypt.compare(otp.trim(), user.resetOtp);
+    if (!isValid) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
 
-    delete otpStore[mobile];
+    // Reset password
+    user.password = newPassword; // hashed by pre-save hook
+    user.resetOtp = undefined;
+    user.resetOtpExpiry = undefined;
+    await user.save();
 
     res.json({ message: "Password reset successful" });
 

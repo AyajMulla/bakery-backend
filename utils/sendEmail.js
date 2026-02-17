@@ -8,13 +8,11 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const sendEmail = async ({ to, subject, html }) => {
+module.exports = async ({ to, subject, html }) => {
   await transporter.sendMail({
-    from: `"Taj Bakery" <${process.env.EMAIL_USER}>`,
+    from: `"Bakery App" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html
   });
 };
-
-module.exports = sendEmail;
