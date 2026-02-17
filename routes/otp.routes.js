@@ -1,7 +1,9 @@
 const router = require("express").Router();
-const axios = require("axios");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+
+// Temporary in-memory OTP store
+const otpStore = {};
 
 /* =========================
    SEND OTP
@@ -10,41 +12,33 @@ router.post("/send", async (req, res) => {
   try {
     const { mobile } = req.body;
 
+    if (!mobile) {
+      return res.status(400).json({ message: "Mobile is required" });
+    }
+
     const user = await User.findOne({ mobile });
-    if (!user)
+
+    if (!user) {
       return res.status(400).json({ message: "Mobile not registered" });
+    }
 
-    const otp = Math.floor(100000 + Math.random() * 900000);
-    const hashedOtp = await bcrypt.hash(otp.toString(), 10);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    user.resetOtp = hashedOtp;
-    user.resetOtpExpiry =
-      Date.now() + Number(process.env.OTP_EXPIRY_MINUTES) * 60 * 1000;
+    otpStore[mobile] = {
+      otp,
+      expires: Date.now() + 2 * 60 * 1000 // 2 minutes
+    };
 
-    await user.save();
-
-    /* SEND SMS */
-    await axios.post(
-      "https://www.fast2sms.com/dev/bulkV2",
-      {
-        route: "otp",
-        numbers: mobile,
-        variables_values: otp
-      },
-      {
-        headers: {
-          authorization: process.env.FAST2SMS_API_KEY,
-          "Content-Type": "application/json"
-        }
-      }
-    );
+    console.log("OTP for", mobile, "is:", otp);
 
     res.json({ message: "OTP sent successfully" });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "OTP send failed" });
+    console.error("OTP SEND ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
+
 
 /* =========================
    VERIFY OTP + RESET PASSWORD
@@ -53,27 +47,39 @@ router.post("/verify", async (req, res) => {
   try {
     const { mobile, otp, newPassword } = req.body;
 
-    const user = await User.findOne({ mobile });
-    if (!user || !user.resetOtp)
-      return res.status(400).json({ message: "Invalid request" });
+    if (!mobile || !otp || !newPassword) {
+      return res.status(400).json({ message: "All fields required" });
+    }
 
-    if (user.resetOtpExpiry < Date.now())
+    const record = otpStore[mobile];
+
+    if (!record) {
+      return res.status(400).json({ message: "OTP not found" });
+    }
+
+    if (record.expires < Date.now()) {
+      delete otpStore[mobile];
       return res.status(400).json({ message: "OTP expired" });
+    }
 
-    const isValid = await bcrypt.compare(otp, user.resetOtp);
-    if (!isValid)
+    if (record.otp !== otp) {
       return res.status(400).json({ message: "Invalid OTP" });
+    }
 
-    user.password = newPassword;
-    user.resetOtp = undefined;
-    user.resetOtpExpiry = undefined;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await user.save();
+    await User.updateOne(
+      { mobile },
+      { $set: { password: hashedPassword } }
+    );
+
+    delete otpStore[mobile];
 
     res.json({ message: "Password reset successful" });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Password reset failed" });
+    console.error("OTP VERIFY ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

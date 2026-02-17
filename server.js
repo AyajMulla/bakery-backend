@@ -1,7 +1,8 @@
+// server.js
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-require("dotenv").config();
 
 const app = express();
 
@@ -9,7 +10,7 @@ const app = express();
    MIDDLEWARE
 ========================= */
 app.use(cors({
-  origin: "*",
+  origin: "*",          // allow frontend + mobile
   credentials: true
 }));
 app.use(express.json());
@@ -23,6 +24,14 @@ app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/otp", require("./routes/otp.routes"));
 
 
+
+/* =========================
+   HEALTH CHECK (OPTIONAL)
+========================= */
+app.get("/", (req, res) => {
+  res.send("Bakery Backend API is running 🚀");
+});
+
 /* =========================
    DATABASE
 ========================= */
@@ -30,12 +39,19 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => {
-    console.error("❌ MongoDB error:", err);
+    console.error("❌ MongoDB connection error:", err);
     process.exit(1);
   });
 
 /* =========================
-   START SERVER
+   GLOBAL ERROR HANDLER
+========================= */
+process.on("unhandledRejection", (err) => {
+  console.error("UNHANDLED ERROR:", err);
+});
+
+/* =========================
+   START SERVER (LAN + LOCAL)
 ========================= */
 const PORT = process.env.PORT || 5000;
 
