@@ -39,18 +39,61 @@ router.post("/send", async (req, res) => {
     user.resetOtpExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
     await user.save();
 
-    // Send email
-    await transporter.sendMail({
-      from: `"Taj Bakery" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "Password Reset OTP",
-      html: `
-        <h2>Password Reset OTP</h2>
-        <p>Your OTP is:</p>
-        <h1>${otp}</h1>
-        <p>This OTP is valid for 5 minutes.</p>
-      `
-    });
+   await transporter.sendMail({
+  from: `"Taj Enterprises" <${process.env.EMAIL_USER}>`,
+  to: email,
+  subject: "🔐 Password Reset OTP - Taj Enterprises",
+  html: `
+    <div style="
+      max-width:600px;
+      margin:auto;
+      font-family:Arial,sans-serif;
+      background:#ffffff;
+      border-radius:8px;
+      overflow:hidden;
+      border:1px solid #eaeaea;
+    ">
+      <div style="
+        background:#6d4c41;
+        padding:20px;
+        color:white;
+        text-align:center;
+      ">
+        <h1>Taj Enterprises</h1>
+        <p>Secure Password Reset</p>
+      </div>
+
+      <div style="padding:30px;">
+        <p>Hello,</p>
+        <p>You requested to reset your password.</p>
+
+        <p style="font-size:16px;">Your One-Time Password (OTP):</p>
+
+        <div style="
+          font-size:32px;
+          font-weight:bold;
+          text-align:center;
+          margin:20px 0;
+          color:#6d4c41;
+          letter-spacing:4px;
+        ">
+          ${otp}
+        </div>
+
+        <p>This OTP is valid for <strong>5 minutes</strong>.</p>
+        <p>If you did not request this, please ignore this email.</p>
+
+        <hr style="margin:30px 0;" />
+
+        <p style="font-size:12px;color:#777;">
+          © ${new Date().getFullYear()} Taj Enterprises  
+          <br/>This is an automated email. Do not reply.
+        </p>
+      </div>
+    </div>
+  `
+});
+
 
     res.json({ message: "OTP sent successfully" });
 

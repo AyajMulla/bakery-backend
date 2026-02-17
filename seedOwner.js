@@ -2,23 +2,29 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const User = require("./models/User");
 
-mongoose.connect(process.env.MONGO_URI).then(async () => {
-  console.log("Connected");
+(async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Connected");
 
-  const exists = await User.findOne({ email: "ayajmulla2341@gmail.com" });
-  if (exists) {
-    console.log("User already exists");
+    const existing = await User.findOne({ email: "mullaayan111@gmail.com" });
+    if (existing) {
+      console.log("User already exists");
+      process.exit();
+    }
+
+    await User.create({
+      username: "Salim",
+      mobile: "8806900405",
+      email: "mullaayan111@gmail.com",
+      password: "Salim786",
+      role: "owner"
+    });
+
+    console.log("Owner created successfully");
     process.exit();
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
   }
-
-  await User.create({
-    name: "Ayaj",
-    email: "ayajmulla2341@gmail.com",
-    mobile: "9359405574",
-    password: "Ayaj@123",
-    role: "owner"
-  });
-
-  console.log("Owner created");
-  process.exit();
-});
+})();
