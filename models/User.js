@@ -2,20 +2,20 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  username: { type: String, required: true },
   mobile: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, default: "owner" }
-}, { timestamps: true });
+  role: { type: String, default: "staff" },
 
-/* =========================
-   HASH PASSWORD BEFORE SAVE
-========================= */
+  // OTP fields
+  resetOtp: String,
+  resetOtpExpiry: Date
+});
+
+/* Hash password */
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
-
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(this.password, 10);
 });
 
 module.exports = mongoose.model("User", userSchema);

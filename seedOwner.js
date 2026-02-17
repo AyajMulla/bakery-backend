@@ -14,7 +14,7 @@ mongoose.connect(process.env.MONGO_URI)
     }
 
     await User.create({
-      name: "Salim",
+      username: "Salim",
       mobile: "8806900405",
       password: "salim786"
     });

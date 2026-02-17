@@ -20,6 +20,8 @@ app.use(express.json());
 app.use("/api/products", require("./routes/product.routes"));
 app.use("/api/sales", require("./routes/sales.routes"));
 app.use("/api/auth", require("./routes/auth.routes"));
+app.use("/api/otp", require("./routes/otp.routes"));
+
 
 /* =========================
    DATABASE
