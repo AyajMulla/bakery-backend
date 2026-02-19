@@ -13,10 +13,15 @@ app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/products", require("./routes/product.routes"));
 app.use("/api/sales", require("./routes/sales.routes"));
 app.use("/api/otp", require("./routes/otp.routes")); // 👈 REQUIRED
+const startOtpCleanupJob = require("./utils/otpCleanup");
+
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    startOtpCleanupJob(); // Start OTP cleanup job
+  })
   .catch(err => {
     console.error(err);
     process.exit(1);
