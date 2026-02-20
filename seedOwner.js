@@ -7,17 +7,17 @@ const User = require("./models/User");
     await mongoose.connect(process.env.MONGO_URI);
     console.log("Connected");
 
-    const existing = await User.findOne({ email: "mullaayan111@gmail.com" });
+    const existing = await User.findOne({ email: "ayajmulla2341@gmail.com" });
     if (existing) {
       console.log("User already exists");
       process.exit();
     }
 
     await User.create({
-      username: "Salim",
-      mobile: "8806900405",
-      email: "mullaayan111@gmail.com",
-      password: "Salim786",
+      username: "Ayaj",
+      mobile: "9359405574",
+      email: "ayajmulla2341@gmail.com",
+      password: "23412341",
       role: "owner"
     });
 
