@@ -1,15 +1,22 @@
 {
   "name": "bakery-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "Bakery Inventory Backend (Node + Express + MongoDB)",
+  "main": "server.js",
   "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "bakery",
+    "inventory",
+    "node",
+    "express",
+    "mongodb"
+  ],
+  "author": "TAJ",
+  "license": "ISC",
   "dependencies": {
     "axios": "^1.13.5",
     "bcryptjs": "^3.0.3",
