@@ -3,30 +3,23 @@ const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const User = require("../models/User");
 
-// Gmail SMTP (Render compatible)
+/* ============================
+   SMTP CONFIG (BREVO)
+============================ */
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: false, // TLS
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.BREVO_USER,
+    pass: process.env.BREVO_PASS
   }
 });
 
-// Verify mail server
-transporter.verify((err) => {
-  if (err) {
-    console.error("❌ MAIL SERVER ERROR:", err);
-  } else {
-    console.log("✅ MAIL SERVER READY");
-  }
-});
-
-/* ==========================
+/* ============================
    SEND OTP
    POST /api/otp/send
-========================== */
+============================ */
 router.post("/send", async (req, res) => {
   try {
     const { email } = req.body;
@@ -40,23 +33,29 @@ router.post("/send", async (req, res) => {
       return res.status(400).json({ message: "Email not registered" });
     }
 
+    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
 
-    user.resetOtp = await bcrypt.hash(otp, 10);
+    user.resetOtp = hashedOtp;
     user.resetOtpExpiry = Date.now() + 5 * 60 * 1000;
     await user.save();
 
     await transporter.sendMail({
-      from: `"Taj Enterprises" <${process.env.EMAIL_USER}>`,
+      from: `"Taj Enterprises" <${process.env.MAIL_FROM}>`,
       to: email,
-      subject: "🔐 Password Reset OTP",
-      html: `<h2>Your OTP is: ${otp}</h2><p>Valid for 5 minutes</p>`
+      subject: "🔐 Password Reset OTP - Taj Enterprises",
+      html: `
+        <h2>Your OTP</h2>
+        <p style="font-size:24px;font-weight:bold;">${otp}</p>
+        <p>Valid for 5 minutes</p>
+      `
     });
 
     res.json({ message: "OTP sent successfully" });
 
   } catch (err) {
-    console.error("❌ OTP SEND ERROR:", err);
+    console.error("OTP SEND ERROR:", err.message);
     res.status(500).json({
       message: "OTP send failed",
       error: err.message
@@ -64,10 +63,9 @@ router.post("/send", async (req, res) => {
   }
 });
 
-/* ==========================
-   VERIFY OTP & RESET PASSWORD
-   POST /api/otp/verify
-========================== */
+/* ============================
+   VERIFY OTP
+============================ */
 router.post("/verify", async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -85,12 +83,12 @@ router.post("/verify", async (req, res) => {
       return res.status(400).json({ message: "OTP expired" });
     }
 
-    const isValid = await bcrypt.compare(otp, user.resetOtp);
+    const isValid = await bcrypt.compare(otp.trim(), user.resetOtp);
     if (!isValid) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    user.password = newPassword; // hashed by pre-save hook
+    user.password = newPassword;
     user.resetOtp = undefined;
     user.resetOtpExpiry = undefined;
     await user.save();
@@ -98,7 +96,6 @@ router.post("/verify", async (req, res) => {
     res.json({ message: "Password reset successful" });
 
   } catch (err) {
-    console.error("❌ OTP VERIFY ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
