@@ -5,26 +5,24 @@ require("dotenv").config();
 
 const app = express();
 
+// Middleware
 app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
 
-// ROUTES
+// Routes
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/products", require("./routes/product.routes"));
 app.use("/api/sales", require("./routes/sales.routes"));
-app.use("/api/otp", require("./routes/otp.routes")); // 👈 REQUIRED
-const startOtpCleanupJob = require("./utils/otpCleanup");
+app.use("/api/otp", require("./routes/otp.routes"));
 
-
-
+// MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
-    startOtpCleanupJob(); // Start OTP cleanup job
   })
-  .catch(err => {
-    console.error(err);
+  .catch((err) => {
+    console.error("❌ MongoDB error:", err);
     process.exit(1);
   });
 
@@ -32,5 +30,3 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
 });
-
-

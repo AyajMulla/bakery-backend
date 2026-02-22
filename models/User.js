@@ -3,16 +3,16 @@ const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
   username: String,
-  email: { type: String, unique: true },
+  email: { type: String, required: true, unique: true },
   mobile: String,
-  password: String,
+  password: { type: String, required: true },
   role: { type: String, default: "owner" },
 
   resetOtp: String,
   resetOtpExpiry: Date
 });
 
-// hash password
+// ✅ Modern async hook (NO next)
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 10);
