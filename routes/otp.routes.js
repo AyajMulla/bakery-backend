@@ -1,20 +1,11 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
-const nodemailer = require("nodemailer");
+const axios = require("axios");
 const User = require("../models/User");
 
 /* ============================
-   SMTP CONFIG (BREVO)
+   BREVO HTTP API SETUP
 ============================ */
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: false, // TLS
-  auth: {
-    user: process.env.BREVO_USER,
-    pass: process.env.BREVO_PASS
-  }
-});
 
 /* ============================
    SEND OTP
@@ -41,16 +32,29 @@ router.post("/send", async (req, res) => {
     user.resetOtpExpiry = Date.now() + 5 * 60 * 1000;
     await user.save();
 
-    await transporter.sendMail({
-      from: `"Taj Enterprises" <${process.env.MAIL_FROM}>`,
-      to: email,
-      subject: "🔐 Password Reset OTP - Taj Enterprises",
-      html: `
-        <h2>Your OTP</h2>
-        <p style="font-size:24px;font-weight:bold;">${otp}</p>
-        <p>Valid for 5 minutes</p>
-      `
-    });
+    await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: {
+          name: "Taj Enterprises",
+          email: process.env.MAIL_FROM
+        },
+        to: [{ email }],
+        subject: "🔐 Password Reset OTP - Taj Enterprises",
+        htmlContent: `
+          <h2>Your OTP</h2>
+          <p style="font-size:24px;font-weight:bold;">${otp}</p>
+          <p>Valid for 5 minutes</p>
+        `
+      },
+      {
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          "api-key": process.env.BREVO_PASS
+        }
+      }
+    );
 
     res.json({ message: "OTP sent successfully" });
 
