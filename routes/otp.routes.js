@@ -28,7 +28,7 @@ router.post("/send", async (req, res) => {
       return res.status(400).json({ message: "Email required" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
     if (!user) {
       return res.status(400).json({ message: "Email not registered" });
     }
@@ -74,7 +74,7 @@ router.post("/verify", async (req, res) => {
       return res.status(400).json({ message: "Invalid request" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
     if (!user || !user.resetOtp) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
