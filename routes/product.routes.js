@@ -1,11 +1,14 @@
 const express = require("express");
 const router = express.Router();   // ✅ THIS WAS MISSING
 const Product = require("../models/Product");
+const auth = require("../middleware/auth.route");
+const checkRole = require("../middleware/role");
+const { validate, productSchema } = require("../middleware/validation");
 
 /* =========================
    GET ALL PRODUCTS
 ========================= */
-router.get("/", async (req, res) => {
+router.get("/", auth, async (req, res) => {
   try {
     const products = await Product.find().sort({ createdAt: -1 });
     res.json(products);
@@ -18,7 +21,7 @@ router.get("/", async (req, res) => {
 /* =========================
    ADD PRODUCT (SAFE)
 ========================= */
-router.post("/", async (req, res) => {
+router.post("/", auth, checkRole(["owner"]), validate(productSchema), async (req, res) => {
   try {
     const {
       name,
@@ -26,7 +29,8 @@ router.post("/", async (req, res) => {
       capacity,
       quantity,
       buyingPrice,
-      sellingPrice
+      sellingPrice,
+      expiryDate
     } = req.body;
 
     // 🔒 VALIDATION
@@ -50,7 +54,8 @@ router.post("/", async (req, res) => {
       quantity: Number(quantity),
       buyingPrice: Number(buyingPrice),
       sellingPrice: Number(sellingPrice),
-      soldQty: 0
+      soldQty: 0,
+      expiryDate: expiryDate ? new Date(expiryDate) : undefined
     });
 
     await product.save();
@@ -65,7 +70,7 @@ router.post("/", async (req, res) => {
 /* =========================
    UPDATE PRODUCT
 ========================= */
-router.put("/:id", async (req, res) => {
+router.put("/:id", auth, checkRole(["owner"]), async (req, res) => {
   try {
     const updated = await Product.findByIdAndUpdate(
       req.params.id,
@@ -82,7 +87,7 @@ router.put("/:id", async (req, res) => {
 /* =========================
    DELETE PRODUCT
 ========================= */
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", auth, checkRole(["owner"]), async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
     res.json({ message: "Product deleted" });

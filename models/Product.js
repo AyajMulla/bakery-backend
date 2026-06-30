@@ -8,7 +8,8 @@ const productSchema = new mongoose.Schema(
     quantity: { type: Number, required: true },
     buyingPrice: { type: Number, required: true },
     sellingPrice: { type: Number, required: true },
-    soldQty: { type: Number, default: 0 }
+    soldQty: { type: Number, default: 0 },
+    expiryDate: { type: Date }
   },
   { timestamps: true }
 );

@@ -14,12 +14,16 @@ app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/products", require("./routes/product.routes"));
 app.use("/api/sales", require("./routes/sales.routes"));
 app.use("/api/otp", require("./routes/otp.routes"));
+app.use("/api/wastage", require("./routes/wastage.routes"));
+
+const initScheduler = require("./utils/reportScheduler");
 
 // MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
+    initScheduler(); // Start daily report cron scheduler
   })
   .catch((err) => {
     console.error("❌ MongoDB error:", err);
